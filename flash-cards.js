@@ -4,7 +4,7 @@ if(Meteor.isServer){
 	Meteor.publish("decks", function () {
     return Decks.find({
       $or: [
-        { isPublic: {$eq: true} },
+        { is_public: {$eq: true} },
         { owner: this.userId }
       ]
     });
@@ -32,7 +32,7 @@ if (Meteor.isClient) {
   Template.deck.helpers({
   	isPublic: function(){
   		var deck = Decks.findOne(this._id)
-  		return deck.isPublic
+  		return deck.is_public
   	},
   	isOwner: function(){
   		return this.owner === Meteor.userId()
@@ -51,13 +51,13 @@ if (Meteor.isClient) {
 }
 
 Meteor.methods({
-  		addDeck: function (name, isPublic) {
+  		addDeck: function (name, is_public) {
   			Decks.insert({
-  				name: name,
-  				createdAt: new Date(),
+  				deck_name: name,
+  				created_at: new Date(),
   				owner: Meteor.userId(),
-  				cards: new Array(),
-  				isPublic: isPublic
+  				deck_cards: new Array(),
+  				is_public: is_public
   			});
   		},
   		deleteDeck: function (deckId) {
