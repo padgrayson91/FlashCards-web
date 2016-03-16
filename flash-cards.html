@@ -1,0 +1,34 @@
+<head>
+  <title>FlashCards</title>
+</head>
+ 
+<body>
+  <div class="container">
+    <header>
+      <h1>Decks</h1>
+    </header>
+    {{> loginButtons}}
+    {{#if currentUser}}
+      <form class="new-deck">
+        <input type="text" name="name" placeholder="Type to start a new deck"/>
+        <label class="inline-text">Make public</label>
+        <input class="checkbox-make-public" name="checkbox" checked="{{checked}}" type="checkbox" />
+      </form>
+    {{/if}}
+    <ul>
+      {{#each decks}}
+        {{> deck}}
+      {{/each}}
+    </ul>
+
+  </div>
+</body>
+ 
+<template name="deck">
+  <li>
+    {{#if isOwner}}
+      <button class="delete">&times;</button>
+    {{/if}}
+    <span class="text">{{name}} - {{cards.length}} Cards {{#if isPublic}} - Public{{else}} - Private{{/if}}</span>
+  </li>
+</template>
