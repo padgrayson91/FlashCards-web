@@ -1,28 +1,37 @@
-<head>
-  <title>FlashCards</title>
-</head>
- 
-<body>
-  <div class="container">
-    <header>
-      <h1>Decks</h1>
-    </header>
-    {{> loginButtons}}
-    {{#if currentUser}}
-      <form class="new-deck">
-        <input type="text" name="name" placeholder="Type to start a new deck"/>
-        <label class="inline-text">Make public</label>
-        <input class="checkbox-make-public" name="checkbox" checked="{{checked}}" type="checkbox" />
-      </form>
-    {{/if}}
-    <ul>
-      {{#each decks}}
-        {{> deck}}
-      {{/each}}
-    </ul>
+<template name="home">
 
-  </div>
-</body>
+  <head>
+    <title>FlashCards</title>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>Decks</h1>
+      </header>
+      {{> loginButtons}}
+      {{#if currentUser}}
+        <form class="new-deck">
+          <input type="text" name="name" placeholder="Type to start a new deck"/>
+          <li>
+            <span>
+              <input id="checkbox-make-public" name="checkbox" checked="{{checked}}" type="checkbox" />
+              <label class="inline-text">Make public</label>
+            </span>
+          </li>
+        </form>
+      {{/if}}
+      <ul>
+        {{#each decks}}
+          {{> deck}}
+        {{/each}}
+      </ul>
+
+    </div>
+  </body>
+
+</template>
+
  
 <template name="deck">
   <li>
@@ -30,5 +39,33 @@
       <button class="delete">&times;</button>
     {{/if}}
     <span class="text">{{deck_name}} - {{deck_cards.length}} Cards {{#if isPublic}} - Public{{else}} - Private{{/if}}</span>
+  </li>
+</template>
+
+<template name="deckDetail">
+  <div class="container">
+    <header>
+      <h1>Cards for {{currentDeck}}</h1>
+    </header>
+    {{#if isOwner}}
+        <form class="new-card">
+          <input type="text" name="question" placeholder="Question"/>
+          <input type="text" name="answer" placeholder="Answer"/>
+        </form>
+    {{/if}}
+    <ul>
+        {{#each cards}}
+          {{> card}}
+        {{/each}}
+    </ul>
+  </div>
+</template>
+
+<template name="card">
+  <li>
+    {{#if isOwner}}
+      <button class="delete">&times;</button>
+    {{/if}}
+    <span class="text">{{card_name}} - {{cardScore}}</span>
   </li>
 </template>

@@ -15,12 +15,22 @@ if (Meteor.isClient) {
   // This code only runs on the client
   Meteor.subscribe("decks")
   console.log("User id: " + Meteor.userId())
-  Template.body.helpers({
+  Router.route("/", {
+    template: 'home'
+  });
+  Router.route("/deck-detail/:_id", {
+    template: 'deckDetail',
+    data: function(){
+      var selectedDeck = this.params._id
+      return Decks.findOne(selectedDeck)
+    }
+  });
+  Template.home.helpers({
     decks: function(){
     	return(Decks.find({}))
     }
   });
-  Template.body.events({
+  Template.home.events({
   	"submit .new-deck":function(event){
   		event.preventDefault();
   		var name = event.target.name.value;
@@ -41,8 +51,23 @@ if (Meteor.isClient) {
   Template.deck.events({
   	"click .delete": function() {
   		Meteor.call("deleteDeck", this._id)
-  	}
+  	},
+    "click": function() {
+      console.log("Clicked a deck: " + this._id)
+      Router.go("/deck-detail/" + this._id)
+    }
   });
+  Template.deckDetail.helpers({
+    cards: function(){
+      return this.deck_cards
+    },
+    currentDeck: function(){
+      return this.deck_name
+    },
+    isOwner: function(){
+      return this.owner === Meteor.userId()
+    }
+  })
 
   Accounts.ui.config({
     passwordSignupFields: "USERNAME_ONLY"
