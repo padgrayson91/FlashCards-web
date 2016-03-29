@@ -1,4 +1,8 @@
 /* CSS declarations go here */
+.add-button {
+  display: block;
+}
+
 body {
   font-family: sans-serif;
   background-color: #315481;

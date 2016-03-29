@@ -48,10 +48,20 @@
       <h1>Cards for {{currentDeck}}</h1>
     </header>
     {{#if isOwner}}
-        <form class="new-card">
+        {{#if isAdding}}
+        <form class="new-card" id="new-card">
           <input type="text" name="question" placeholder="Question"/>
           <input type="text" name="answer" placeholder="Answer"/>
+          <input type="text" name="option1" placeholder="Option 1"/>
+          <input type="text" name="option2" placeholder="Option 2"/>
+          <input type="text" name="option3" placeholder="Option 3"/>
+          <input type="submit" value="Create Card"/>
         </form>
+        <button class="cancel-button">Cancel</button>
+        {{else}}
+          <button class="add-button">New Card</button>
+
+        {{/if}}
     {{/if}}
     <ul>
         {{#each cards}}
@@ -63,9 +73,9 @@
 
 <template name="card">
   <li>
-    {{#if isOwner}}
+    <!--{{#if this.parent.isOwner}}-->
       <button class="delete">&times;</button>
-    {{/if}}
-    <span class="text">{{card_name}} - {{cardScore}}</span>
+    <!--{{/if}}-->
+    <span class="text">{{card_question}}  --  Score: {{cardScore}}</span>
   </li>
 </template>

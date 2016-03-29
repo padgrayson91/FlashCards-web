@@ -59,14 +59,58 @@ if (Meteor.isClient) {
   });
   Template.deckDetail.helpers({
     cards: function(){
-      return this.deck_cards
+      var self = this
+      return _.map(self.deck_cards, function(p){
+        p.parent = self
+        return p
+      });
     },
     currentDeck: function(){
       return this.deck_name
     },
     isOwner: function(){
       return this.owner === Meteor.userId()
+    },
+    isAdding: function(){
+      return Session.get("addingCard")
     }
+  });
+  Template.deckDetail.events({
+    "submit .new-card":function(event){
+      event.preventDefault();
+      var question = event.target.question.value;
+      var answer = event.target.answer.value;
+      var options = new Array();
+      if(event.target.option1.value){
+        options.push(event.target.option1.value)
+      }
+      if(event.target.option2.value){
+        options.push(event.target.option2.value)
+      }
+      if(event.target.option3.value){
+        options.push(event.target.option3.value)
+      }
+      Meteor.call("addCard", this._id, question, answer, options)
+      event.target.question.value = "";
+      event.target.answer.value = "";
+      Session.set("addingCard", false)
+    },
+    "click .add-button":function(event){
+      Session.set("addingCard", true)
+    },
+    "click .cancel-button":function(event){
+      Session.set("addingCard", false)
+    }
+  });
+  Template.card.helpers({
+    cardScore: function(){
+      return this.card_times_correct - this.card_times_incorrect
+    }
+  });
+  Template.card.events({
+    "click .delete": function() {
+      Meteor.call("deleteCard",  this.parent._id, this._id)
+    },
   })
 
   Accounts.ui.config({
@@ -87,5 +131,25 @@ Meteor.methods({
   		},
   		deleteDeck: function (deckId) {
       		Decks.remove(deckId);
-    	}
+      },
+      addCard: function (deckId, question, answer, options){
+        if(question && answer && options){
+          var deck = Decks.findOne(deckId)
+          var card = {
+            _id: new Meteor.Collection.ObjectID()._str,
+            card_question: question,
+            card_answer: answer,
+            created_at: new Date(),
+            card_options: options,
+            card_times_correct: 0,
+            card_times_incorrect: 0
+          };
+          deck.deck_cards.push(card);
+          Decks.update(deckId, deck)
+        }
+      },
+      deleteCard: function (deckId, cardId){
+        console.log("Deleting card " + cardId + " from deck " + deckId)
+        Decks.update({ "_id": deckId}, {$pull: {"deck_cards": {"_id": cardId}}})
+      }
 });
