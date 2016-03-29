@@ -39,6 +39,7 @@
       <button class="delete">&times;</button>
     {{/if}}
     <span class="text">{{deck_name}} - {{deck_cards.length}} Cards {{#if isPublic}} - Public{{else}} - Private{{/if}}</span>
+    <button class="play">Play!</button>
   </li>
 </template>
 
@@ -63,6 +64,7 @@
 
         {{/if}}
     {{/if}}
+    <button class="play">Play!</button>
     <ul>
         {{#each cards}}
           {{> card}}
@@ -78,4 +80,20 @@
     <!--{{/if}}-->
     <span class="text">{{card_question}}  --  Score: {{cardScore}}</span>
   </li>
+</template>
+
+<template name="player">
+  <div class="container">
+    <header>
+      <h1>Playing {{deck_name}}</h1>
+    </header>
+    <span><p>{{currentCard.card_question}}</p></span>
+    {{#each answerChoices}}
+      <button class="answer" text="{{this}}">{{this}}</button>
+    {{/each}}
+    <button class="skip">Skip</button>
+
+  </div>
+
+
 </template>

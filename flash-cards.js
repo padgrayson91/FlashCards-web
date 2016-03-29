@@ -25,6 +25,13 @@ if (Meteor.isClient) {
       return Decks.findOne(selectedDeck)
     }
   });
+  Router.route("/player/:_id", {
+    template: 'player',
+    data: function(){
+      var selectedDeck = this.params._id
+      return Decks.findOne(selectedDeck)
+    }
+  });
   Template.home.helpers({
     decks: function(){
     	return(Decks.find({}))
@@ -55,6 +62,10 @@ if (Meteor.isClient) {
     "click": function() {
       console.log("Clicked a deck: " + this._id)
       Router.go("/deck-detail/" + this._id)
+    },
+    "click .play":function() {
+      Session.set("currentIndex", 0)
+      Router.go("/player/" + this._id)
     }
   });
   Template.deckDetail.helpers({
@@ -100,6 +111,10 @@ if (Meteor.isClient) {
     },
     "click .cancel-button":function(event){
       Session.set("addingCard", false)
+    },
+    "click .play":function() {
+      Session.set("currentIndex", 0)
+      Router.go("/player/" + this._id)
     }
   });
   Template.card.helpers({
@@ -111,7 +126,58 @@ if (Meteor.isClient) {
     "click .delete": function() {
       Meteor.call("deleteCard",  this.parent._id, this._id)
     },
-  })
+  });
+  Template.player.helpers({
+    currentCard: function(){
+      if(!Session.get("currentIndex")){
+        Session.set("currentIndex", 0)
+      }
+      var card = this.deck_cards[Session.get("currentIndex")]
+      return card
+    },
+    answerChoices: function(){
+      var card = this.deck_cards[Session.get("currentIndex")]
+      var options = new Array()
+      options = options.concat(card.card_options)
+      options.push(card.card_answer)
+      for (var i = options.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = options[i];
+        options[i] = options[j];
+        options[j] = temp;
+      }
+      return options
+    }
+  });
+  Template.player.events({
+    "click .skip": function(){
+      if(Session.get("currentIndex") == (this.deck_cards.length - 1)){
+        //we're done
+        Router.go("/deck-detail/" + this._id)
+      } else {
+        Session.set("currentIndex", Session.get("currentIndex") + 1)
+      }
+    },
+    "click .answer": function(event){
+      var user_answer = event.target.getAttribute("text")
+      var deck = Template.parentData(1)
+      var card = deck.deck_cards[Session.get("currentIndex")]
+      if(user_answer === card.card_answer){
+        //Correct! :D
+        console.log("YAY")
+      } else {
+        console.log("Aw...")
+        //Wrong :(
+      }
+      if(Session.get("currentIndex") == (deck.deck_cards.length - 1)){
+        //we're done
+        Router.go("/deck-detail/" + deck._id)
+      } else {
+        Session.set("currentIndex", Session.get("currentIndex") + 1)
+      }
+
+    }
+  });
 
   Accounts.ui.config({
     passwordSignupFields: "USERNAME_ONLY"
@@ -136,6 +202,7 @@ Meteor.methods({
         if(question && answer && options){
           var deck = Decks.findOne(deckId)
           var card = {
+            //TODO: times correct and incorrect should be arrays, where each user of the deck gets an entry
             _id: new Meteor.Collection.ObjectID()._str,
             card_question: question,
             card_answer: answer,
@@ -147,6 +214,7 @@ Meteor.methods({
           deck.deck_cards.push(card);
           Decks.update(deckId, deck)
         }
+
       },
       deleteCard: function (deckId, cardId){
         console.log("Deleting card " + cardId + " from deck " + deckId)
