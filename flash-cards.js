@@ -1,5 +1,13 @@
 Decks = new Mongo.Collection("decks")
 
+/**
+The cards are no longer directly associated with a deck.
+Instead, every card will have its own entry in the "cards"
+collection with references to which deck it is in.  This
+is structurally odd, but it helps avoid nesting a lot of arrays
+*/
+Cards = new Mongo.Collection("cards")
+
 if(Meteor.isServer){
 	Meteor.publish("decks", function () {
     return Decks.find({
@@ -9,11 +17,22 @@ if(Meteor.isServer){
       ]
     });
   });
+  Meteor.publish("cards", function() {
+    return Cards.find({
+      $or: [
+        { is_public: {$eq: true}},
+        { owner: this.userId}
+      ]
+    })
+  });
+  console.log(Decks.find({}))
+  console.log(Cards.find({}))
 }
 
 if (Meteor.isClient) {
   // This code only runs on the client
   Meteor.subscribe("decks")
+  Meteor.subscribe("cards")
   console.log("User id: " + Meteor.userId())
   Router.route("/", {
     template: 'home'
@@ -71,7 +90,15 @@ if (Meteor.isClient) {
   Template.deckDetail.helpers({
     cards: function(){
       var self = this
-      return _.map(self.deck_cards, function(p){
+      console.log(this.deck_cards)
+      cards_for_deck = new Array()
+      if(this.deck_cards){
+      this.deck_cards.forEach(function(entry) {
+        cards_for_deck.push(Cards.findOne(entry))
+      });
+      }
+      console.log(cards_for_deck)
+      return _.map(cards_for_deck, function(p){
         p.parent = self
         return p
       });
@@ -119,24 +146,44 @@ if (Meteor.isClient) {
   });
   Template.card.helpers({
     cardScore: function(){
-      return this.card_times_correct - this.card_times_incorrect
+      return 0
+      var card = Cards.findOne(this._id)
+      var userId = Meteor.userId()
+      if(card.card_scores[userId]){
+        var scoreBlob = card.card_scores[userId]
+        return scoreBlob.times_correct - scoreBlob.times_incorrect
+      } else {
+        return 0
+      }
+      
     }
   });
   Template.card.events({
     "click .delete": function() {
       Meteor.call("deleteCard",  this.parent._id, this._id)
     },
+    "click":function() {
+      var user = Meteor.user()
+      var cardId = this._id
+      console.log(user)
+      if(!user.scores){
+        Meteor.call("createUserScores", Meteor.userId(), cardId)
+      }
+      console.log(user.scores)
+      console.log(cardId)
+      console.log(user.scores.filter(function(obj) { return obj._id == cardId}))
+    }
   });
   Template.player.helpers({
     currentCard: function(){
       if(!Session.get("currentIndex")){
         Session.set("currentIndex", 0)
       }
-      var card = this.deck_cards[Session.get("currentIndex")]
+      var card = Cards.findOne(this.deck_cards[Session.get("currentIndex")])
       return card
     },
     answerChoices: function(){
-      var card = this.deck_cards[Session.get("currentIndex")]
+      var card = Cards.findOne(this.deck_cards[Session.get("currentIndex")])
       var options = new Array()
       options = options.concat(card.card_options)
       options.push(card.card_answer)
@@ -161,7 +208,7 @@ if (Meteor.isClient) {
     "click .answer": function(event){
       var user_answer = event.target.getAttribute("text")
       var deck = Template.parentData(1)
-      var card = deck.deck_cards[Session.get("currentIndex")]
+      var card = Cards.findOne(this.deck_cards[Session.get("currentIndex")])
       if(user_answer === card.card_answer){
         //Correct! :D
         console.log("YAY")
@@ -191,8 +238,8 @@ Meteor.methods({
   				deck_name: name,
   				created_at: new Date(),
   				owner: Meteor.userId(),
-  				deck_cards: new Array(),
-  				is_public: is_public
+  				is_public: is_public,
+          deck_cards: new Array()
   			});
   		},
   		deleteDeck: function (deckId) {
@@ -200,24 +247,60 @@ Meteor.methods({
       },
       addCard: function (deckId, question, answer, options){
         if(question && answer && options){
+          console.log("Adding card!")
           var deck = Decks.findOne(deckId)
           var card = {
-            //TODO: times correct and incorrect should be arrays, where each user of the deck gets an entry
-            _id: new Meteor.Collection.ObjectID()._str,
-            card_question: question,
+            is_public: deck.is_public,
+            owner: Meteor.userId(),
             card_answer: answer,
+            card_question: question,
             created_at: new Date(),
             card_options: options,
-            card_times_correct: 0,
-            card_times_incorrect: 0
+            card_scores: new Array()
           };
-          deck.deck_cards.push(card);
-          Decks.update(deckId, deck)
+          Cards.insert(card, function(err,docsInserted) {
+            var deck = Decks.findOne(deckId)
+            console.log(docsInserted)
+            deck.deck_cards.push(docsInserted)
+            Decks.update(deckId, deck)
+          });
+
         }
 
       },
       deleteCard: function (deckId, cardId){
-        console.log("Deleting card " + cardId + " from deck " + deckId)
-        Decks.update({ "_id": deckId}, {$pull: {"deck_cards": {"_id": cardId}}})
+        var deck = Decks.findOne(deckId)
+        var index = deck.deck_cards.indexOf(cardId)
+        if(index > -1){
+          deck.deck_cards.remove(index)
+        }
+        Decks.update(deckId, deck)
+        var other_decks = Decks.find({"deck_cards": { $elemMatch: {cardId} } })
+        if(!other_decks){
+          //If there are no other decks containing this card, just dump it entirely
+          Cards.remove(cardId)
+        }
+      },
+      createUserScores: function (userId, cardId){
+        console.log("Updating user")
+        var user = Meteor.users.findOne(userId)
+        user.scores = new Array()
+        user.scores.push({
+          "_id":cardId,
+          "times_incorrect":0,
+          "times_correct":0
+        })
+        Meteor.users.update({"_id":user._id}, {"$push": {"scores": user.scores}});
+        console.log(Meteor.users.findOne(userId))
+
+      },
+      createScoresForCard: function (userId, cardId){
+        var user = Meteor.users.findOne(userId)
+        user.scores.push({
+          "_id":cardId,
+          "times_incorrect":0,
+          "times_correct":0
+        });
+        Meteor.users.update({"_id":userId}, {"$push": {"scores": user.scores}});
       }
 });

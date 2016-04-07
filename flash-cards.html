@@ -78,7 +78,7 @@
     <!--{{#if this.parent.isOwner}}-->
       <button class="delete">&times;</button>
     <!--{{/if}}-->
-    <span class="text">{{card_question}}  --  Score: {{cardScore}}</span>
+    <span class="text">{{card_question}}  {{#if currentUser}} --  Score: {{cardScore}}{{/if}}</span>
   </li>
 </template>
 
