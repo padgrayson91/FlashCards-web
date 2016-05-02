@@ -44,6 +44,7 @@
 </template>
 
 <template name="deckDetail">
+  {{> notifications}}
   <div class="container">
     <header>
       <h1>Cards for {{currentDeck}}</h1>
@@ -83,6 +84,7 @@
 </template>
 
 <template name="player">
+  {{> notifications}}
   <div class="container">
     <header>
       <h1>Playing {{deck_name}}</h1>

@@ -33,6 +33,12 @@ if (Meteor.isClient) {
   // This code only runs on the client
   Meteor.subscribe("decks")
   Meteor.subscribe("cards")
+
+  Meteor.startup(function () {
+    _.extend(Notifications.defaultOptions, {
+        timeout: 1000
+    });
+  });
   console.log("User id: " + Meteor.userId())
   Router.route("/", {
     template: 'home'
@@ -208,17 +214,27 @@ if (Meteor.isClient) {
     "click .answer": function(event){
       var user_answer = event.target.getAttribute("text")
       var deck = Template.parentData(1)
-      var card = Cards.findOne(this.deck_cards[Session.get("currentIndex")])
+      var card = Cards.findOne(deck.deck_cards[Session.get("currentIndex")])
       if(user_answer === card.card_answer){
         //Correct! :D
-        console.log("YAY")
+        var notificationId = Notifications.success('Correct!', 'Great job!');
+        Meteor.setTimeout( function () {
+          Notifications.remove({ _id: notificationId });
+        }, 1500);
       } else {
-        console.log("Aw...")
+        var notificationId = Notifications.error('Incorrect', 'The correct answer was: ' + card.card_answer)
+        Meteor.setTimeout( function () {
+          Notifications.remove({ _id: notificationId });
+        }, 1500);
         //Wrong :(
       }
       if(Session.get("currentIndex") == (deck.deck_cards.length - 1)){
-        //we're done
+        //we're done, but need to sleep for a bit to show notification
+        Meteor.sleep(1500)
         Router.go("/deck-detail/" + deck._id)
+        Meteor.setTimeout( function () {
+          Notifications.success('Deck complete!', 'Nice work, keep it up!');
+        }, 1500);
       } else {
         Session.set("currentIndex", Session.get("currentIndex") + 1)
       }

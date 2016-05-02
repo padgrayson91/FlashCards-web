@@ -20,3 +20,5 @@ accounts-password
 iron:router
 standard-minifier-css
 standard-minifier-js
+gfk:notifications
+froatsnook:sleep
